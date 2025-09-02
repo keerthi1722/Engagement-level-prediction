@@ -1,38 +1,74 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, render_template_string
 import pickle
 import pandas as pd
 
 app = Flask(__name__)
 
-# Load model and encoders
-model = pickle.load(open("optimized_random_forest_model.pkl", "rb"))
-le_platform = pickle.load(open("platform_encoder.pkl", "rb"))
-le_target = pickle.load(open("engagement_encoder.pkl", "rb"))
+# Load trained model
+with open("model.pkl", "rb") as f:
+    model = pickle.load(f)
 
-@app.route('/predict', methods=['POST'])
+# HTML template
+HTML_PAGE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Engagement Level Prediction</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 50px; background: #f5f5f5; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; }
+        input, select, button { width: 100%; padding: 10px; margin: 8px 0; border-radius: 5px; border: 1px solid #ccc; }
+        button { background: #007bff; color: white; font-size: 16px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin-top: 20px; text-align: center; font-size: 20px; font-weight: bold; color: green; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Engagement Level Prediction</h2>
+        <form method="POST" action="/predict">
+            <label>Platform:</label>
+            <select name="Platform">
+                <option value="YouTube">YouTube</option>
+                <option value="Instagram">Instagram</option>
+                <option value="Twitter">Twitter</option>
+                <option value="Facebook">Facebook</option>
+            </select>
+            <label>Views:</label>
+            <input type="number" name="Views" required>
+            <label>Likes:</label>
+            <input type="number" name="Likes" required>
+            <label>Shares:</label>
+            <input type="number" name="Shares" required>
+            <label>Comments:</label>
+            <input type="number" name="Comments" required>
+            <button type="submit">Predict</button>
+        </form>
+        {% if result %}
+        <div class="result">Predicted Engagement Level: {{ result }}</div>
+        {% endif %}
+    </div>
+</body>
+</html>
+"""
+
+@app.route("/", methods=["GET"])
+def home():
+    return render_template_string(HTML_PAGE)
+
+@app.route("/predict", methods=["POST"])
 def predict():
-    data = request.json
-    try:
-        platform = data['Platform']
-        views = int(data['Views'])
-        likes = int(data['Likes'])
-        shares = int(data['Shares'])
-        comments = int(data['Comments'])
+    data = {
+        "Platform": [request.form["Platform"]],
+        "Views": [int(request.form["Views"])],
+        "Likes": [int(request.form["Likes"])],
+        "Shares": [int(request.form["Shares"])],
+        "Comments": [int(request.form["Comments"])]
+    }
+    df = pd.DataFrame(data)
+    prediction = model.predict(df)[0]
+    return render_template_string(HTML_PAGE, result=prediction)
 
-        # Encode platform
-        platform_encoded = le_platform.transform([platform])[0]
-
-        # Prepare input
-        input_data = [[platform_encoded, views, likes, shares, comments]]
-        input_df = pd.DataFrame(input_data, columns=['Platform_Encoded', 'Views', 'Likes', 'Shares', 'Comments'])
-
-        # Predict
-        prediction = model.predict(input_df)[0]
-        engagement_level = le_target.inverse_transform([prediction])[0]
-
-        return jsonify({"engagement_level": engagement_level})
-    except Exception as e:
-        return jsonify({"error": str(e)})
-
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
