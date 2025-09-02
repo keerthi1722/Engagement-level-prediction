@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Engagement Prediction</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #1E1E2F; color: white; text-align: center; }
+        form { margin: 20px auto; width: 300px; background: #2A2A40; padding: 20px; border-radius: 10px; }
+        input, button { margin: 10px 0; padding: 10px; width: 90%; border-radius: 5px; border: none; }
+        button { background: #4CAF50; color: white; cursor: pointer; }
+        button:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <h2>📊 Engagement Level Prediction</h2>
+    <form method="POST">
+        <input type="text" name="platform" placeholder="Platform (e.g., YouTube)" required>
+        <input type="number" name="views" placeholder="Views" required>
+        <input type="number" name="likes" placeholder="Likes" required>
+        <input type="number" name="shares" placeholder="Shares" required>
+        <input type="number" name="comments" placeholder="Comments" required>
+        <button type="submit">🔍 Predict</button>
+    </form>
+    {% if prediction %}
+        <h3>✅ Prediction: {{ prediction }}</h3>
+    {% endif %}
+</body>
+</html>
